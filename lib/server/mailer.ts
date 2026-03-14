@@ -47,11 +47,21 @@ export async function sendOtpEmail(params: {
     </div>
   `;
 
-  await transporter.sendMail({
-    from,
-    to: params.to,
-    subject,
-    text,
-    html,
-  });
+  try {
+    await transporter.sendMail({
+      from,
+      to: params.to,
+      subject,
+      text,
+      html,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'SMTP delivery failed';
+    if (message.includes('535') || message.toLowerCase().includes('authentication failed')) {
+      throw new Error(
+        'SMTP authentication failed (535). Use Brevo SMTP login and SMTP key in SMTP_USER/SMTP_PASS, and a verified sender in SMTP_FROM.'
+      );
+    }
+    throw error;
+  }
 }

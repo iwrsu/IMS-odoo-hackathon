@@ -201,13 +201,19 @@ Design notes:
 ## OTP authentication flow
 
 1. Enter email + role on `/login`
-2. OTP is emailed through Brevo SMTP relay
-3. Enter 6-digit OTP to sign in
-4. Session is stored in secure httpOnly cookie
-5. User is redirected to role home:
+2. If email is new, the app auto-creates an active user with selected role
+3. OTP is emailed through Brevo SMTP relay
+4. Enter 6-digit OTP to sign in
+5. Session is stored in secure httpOnly cookie
+6. User is redirected to role home:
   - `admin` → `/dashboard/admin`
   - `manager` → `/dashboard/manager`
   - `staff` → `/dashboard/staff`
+
+Important:
+- `SMTP_USER` must be your Brevo SMTP login.
+- `SMTP_PASS` must be your Brevo SMTP key (not account password).
+- `SMTP_FROM` must be a sender verified in Brevo.
 
 Seed users (from `scripts/seed-db.sql`):
 - `admin@coreinventory.com`

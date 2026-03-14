@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint .",
     "db:init": "node scripts/run-sql.mjs scripts/init-db.sql",
-    "db:seed": "node scripts/run-sql.mjs scripts/seed-db.sql"
+    "db:seed": "node scripts/run-sql.mjs scripts/seed-db.sql",
+    "db:tables": "psql \"$(node scripts/get-db-url.mjs)\" -c \"\\dt\"",
+    "db:inspect": "psql \"$(node scripts/get-db-url.mjs)\" -c \"\\dt\" -c \"SELECT id, sku, quantity_on_hand, updated_at FROM products ORDER BY updated_at DESC LIMIT 20;\" -c \"SELECT timestamp, document_type, document_number, product_sku, quantity_change FROM ledger_entries ORDER BY timestamp DESC LIMIT 20;\" -c \"SELECT email, role, created_at FROM users ORDER BY created_at DESC LIMIT 20;\"",
+    "db:watch-ledger": "watch -n 1 'psql \"$(node scripts/get-db-url.mjs)\" -c \"SELECT timestamp, document_type, document_number, product_sku, quantity_change FROM ledger_entries ORDER BY timestamp DESC LIMIT 10;\"'"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

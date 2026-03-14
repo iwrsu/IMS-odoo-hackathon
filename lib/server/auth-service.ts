@@ -54,6 +54,44 @@ function ensureRole(role: unknown): role is UserRole {
   return role === 'admin' || role === 'manager' || role === 'staff';
 }
 
+function deriveDisplayNameFromEmail(email: string) {
+  const localPart = email.split('@')[0] ?? 'user';
+  const normalized = localPart.replace(/[._-]+/g, ' ').trim();
+  if (!normalized) return 'User';
+  return normalized
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+async function getOrCreateActiveUser(email: string, role?: UserRole) {
+  const existingResult = await query<UserRow>(
+    'SELECT * FROM users WHERE email = $1 AND is_active = TRUE LIMIT 1',
+    [email]
+  );
+
+  const existing = existingResult.rows[0];
+  if (existing) {
+    if (role && existing.role !== role) {
+      throw new Error('Email and role do not match');
+    }
+    return existing;
+  }
+
+  const resolvedRole: UserRole = role ?? 'staff';
+  const createdResult = await query<UserRow>(
+    `
+      INSERT INTO users (id, email, name, role, warehouse, is_active, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NULL, TRUE, NOW(), NOW())
+      RETURNING *
+    `,
+    [randomUUID(), email, deriveDisplayNameFromEmail(email), resolvedRole]
+  );
+
+  return createdResult.rows[0];
+}
+
 export function getSessionCookieName() {
   return SESSION_COOKIE_NAME;
 }
@@ -64,22 +102,12 @@ export async function requestOtp(params: {
   purpose?: OtpPurpose;
 }) {
   const email = params.email.trim().toLowerCase();
+  if (params.role && !ensureRole(params.role)) {
+    throw new Error('Invalid role');
+  }
   const purpose: OtpPurpose = params.purpose ?? 'login';
 
-  const userResult = await query<UserRow>(
-    'SELECT * FROM users WHERE email = $1 AND is_active = TRUE LIMIT 1',
-    [email]
-  );
-
-  const user = userResult.rows[0];
-
-  if (!user) {
-    throw new Error('No active user found for this email');
-  }
-
-  if (params.role && user.role !== params.role) {
-    throw new Error('Email and role do not match');
-  }
+  const user = await getOrCreateActiveUser(email, params.role);
 
   const otp = generateOtpCode();
   const codeHash = hashValue(`${email}:${otp}`);
