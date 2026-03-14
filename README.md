@@ -245,3 +245,27 @@ psql "postgresql://ims_user:ims_password@localhost:5432/ims_db" -c "SELECT NOW()
 If `db:init` or `db:seed` fails:
 - Check database credentials and host in `.env.local`
 - Ensure `ims_db` exists and user has privileges
+
+## Secret safety
+
+This project includes a local secret scanner and pre-commit hook:
+
+- Install/refresh hooks:
+
+```bash
+npm run hooks:install
+```
+
+- Scan all tracked files:
+
+```bash
+npm run secrets:scan
+```
+
+- Scan only staged changes (runs automatically on commit):
+
+```bash
+npm run secrets:scan-staged
+```
+
+Environment files are ignored by git except `.env.example`.
